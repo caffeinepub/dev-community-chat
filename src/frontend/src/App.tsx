@@ -20,12 +20,20 @@ const rootRoute = createRootRoute();
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
+  beforeLoad: () => {
+    const token = localStorage.getItem("sessionToken");
+    if (token) throw redirect({ to: "/chat" });
+  },
   component: LoginPage,
 });
 
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/register",
+  beforeLoad: () => {
+    const token = localStorage.getItem("sessionToken");
+    if (token) throw redirect({ to: "/chat" });
+  },
   component: RegisterPage,
 });
 

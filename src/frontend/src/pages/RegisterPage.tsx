@@ -41,8 +41,18 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await backend.register(username.trim(), email.trim(), password);
-      toast.success("Account created! Please sign in.");
-      navigate({ to: "/login" });
+      // Auto-login after successful registration
+      const token = await backend.login(username.trim(), password);
+      localStorage.setItem("sessionToken", token);
+      localStorage.setItem("currentUsername", username.trim());
+      if (
+        typeof Notification !== "undefined" &&
+        Notification.permission === "default"
+      ) {
+        Notification.requestPermission();
+      }
+      toast.success("Registration successful! Welcome aboard.");
+      navigate({ to: "/chat" });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(
