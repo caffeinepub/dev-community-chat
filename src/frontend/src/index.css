@@ -1,0 +1,116 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    /* WhatsApp-inspired palette */
+    --background: 0.96 0.008 230; /* #EEF2F5 app bg */
+    --foreground: 0.17 0.01 260; /* #111827 near-black */
+    --card: 1 0 0; /* white */
+    --card-foreground: 0.17 0.01 260;
+    --popover: 1 0 0;
+    --popover-foreground: 0.17 0.01 260;
+    --primary: 0.74 0.2 148; /* #25D366 WhatsApp green */
+    --primary-foreground: 1 0 0;
+    --secondary: 0.96 0.008 230;
+    --secondary-foreground: 0.17 0.01 260;
+    --muted: 0.94 0.008 230;
+    --muted-foreground: 0.52 0.01 260; /* #6B7280 */
+    --accent: 0.96 0.008 230;
+    --accent-foreground: 0.17 0.01 260;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 1 0 0;
+    --border: 0.88 0.01 230; /* #D9DEE3 */
+    --input: 0.88 0.01 230;
+    --ring: 0.74 0.2 148;
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    /* Sidebar = dark teal */
+    --sidebar: 0.14 0.02 210; /* #111B21 */
+    --sidebar-foreground: 0.95 0 0;
+    --sidebar-primary: 0.74 0.2 148; /* green */
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.2 0.02 210; /* #1A2A31 */
+    --sidebar-accent-foreground: 0.95 0 0;
+    --sidebar-border: 0.22 0.015 210;
+    --sidebar-ring: 0.74 0.2 148;
+    /* Custom chat tokens */
+    --sent-bubble: 0.42 0.085 160; /* #1F5D4A dark green */
+    --sent-bubble-foreground: 1 0 0;
+    --received-bubble: 1 0 0; /* white */
+    --received-bubble-foreground: 0.17 0.01 260;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: "Inter", sans-serif;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.75 0 0 / 0.3);
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .bg-sent-bubble {
+    background-color: oklch(var(--sent-bubble));
+  }
+  .text-sent-bubble-foreground {
+    color: oklch(var(--sent-bubble-foreground));
+  }
+  .bg-received-bubble {
+    background-color: oklch(var(--received-bubble));
+  }
+  .text-received-bubble-foreground {
+    color: oklch(var(--received-bubble-foreground));
+  }
+  .bg-sidebar-dark {
+    background: linear-gradient(
+      180deg,
+      oklch(0.12 0.02 210) 0%,
+      oklch(0.14 0.02 210) 100%
+    );
+  }
+  .chat-bg-pattern {
+    background-color: oklch(0.96 0.008 230);
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d9dee3' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .animate-typing {
+    animation: typing-pulse 1.4s infinite;
+  }
+  @keyframes typing-pulse {
+    0%,
+    60%,
+    100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-4px);
+    }
+  }
+}
