@@ -1,4 +1,5 @@
 import type { backendInterface } from "../backend";
+import type { backendInterface as FullBackendInterface } from "../backend.d";
 import { createActorWithConfig } from "../config";
 
 let _instance: backendInterface | null = null;
@@ -61,5 +62,36 @@ export const backendService = {
   async validateSessionToken(token: string): Promise<boolean> {
     const actor = await getInstance();
     return actor.validateSessionToken(token);
+  },
+  async createArticle(
+    sessionToken: string,
+    title: string,
+    content: string,
+    imageUrl: string | null,
+  ): Promise<bigint> {
+    const actor = (await getInstance()) as unknown as FullBackendInterface;
+    return actor.createArticle(sessionToken, title, content, imageUrl);
+  },
+  async getAllArticles() {
+    const actor = (await getInstance()) as unknown as FullBackendInterface;
+    return actor.getAllArticles();
+  },
+  async getArticle(id: bigint) {
+    const actor = (await getInstance()) as unknown as FullBackendInterface;
+    return actor.getArticle(id);
+  },
+  async updateArticle(
+    sessionToken: string,
+    id: bigint,
+    title: string,
+    content: string,
+    imageUrl: string | null,
+  ): Promise<void> {
+    const actor = (await getInstance()) as unknown as FullBackendInterface;
+    return actor.updateArticle(sessionToken, id, title, content, imageUrl);
+  },
+  async deleteArticle(sessionToken: string, id: bigint): Promise<void> {
+    const actor = (await getInstance()) as unknown as FullBackendInterface;
+    return actor.deleteArticle(sessionToken, id);
   },
 };

@@ -7,6 +7,19 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export type Time = bigint;
+export interface PublicUserProfile {
+    username: string;
+    email: string;
+    lastSeen: Time;
+    online: boolean;
+}
+export interface GroupView {
+    id: string;
+    name: string;
+    memberCount: bigint;
+    description: string;
+}
 export interface Message {
     id: bigint;
     text: string;
@@ -15,18 +28,14 @@ export interface Message {
     timestamp: Time;
     senderId: Principal;
 }
-export interface PublicUserProfile {
-    username: string;
-    email: string;
-    lastSeen: Time;
-    online: boolean;
-}
-export type Time = bigint;
-export interface GroupView {
-    id: string;
-    name: string;
-    memberCount: bigint;
-    description: string;
+export interface Article {
+    id: bigint;
+    title: string;
+    content: string;
+    imageUrl: string | null;
+    authorName: string;
+    authorId: string;
+    createdAt: Time;
 }
 export enum UserRole {
     admin = "admin",
@@ -51,4 +60,9 @@ export interface backendInterface {
     saveCallerUserProfile(username: string, email: string): Promise<void>;
     sendMessage(groupId: string, text: string, sessionToken: string): Promise<bigint>;
     validateSessionToken(token: string): Promise<boolean>;
+    createArticle(sessionToken: string, title: string, content: string, imageUrl: string | null): Promise<bigint>;
+    getAllArticles(): Promise<Array<Article>>;
+    getArticle(id: bigint): Promise<Article | null>;
+    updateArticle(sessionToken: string, id: bigint, title: string, content: string, imageUrl: string | null): Promise<void>;
+    deleteArticle(sessionToken: string, id: bigint): Promise<void>;
 }

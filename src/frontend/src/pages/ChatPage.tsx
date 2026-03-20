@@ -5,6 +5,8 @@ import {
   LogOut,
   MessageCircle,
   MoreVertical,
+  Newspaper,
+  PenLine,
   Phone,
   Search,
   Send,
@@ -290,6 +292,30 @@ export default function ChatPage() {
               </button>
             </div>
 
+            {/* Articles nav button */}
+            <div className="px-3 pt-3">
+              <button
+                type="button"
+                data-ocid="chat.link"
+                onClick={() => navigate({ to: "/articles" })}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:bg-white/5"
+                style={{ color: "#8B9EA8" }}
+              >
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(37,211,102,0.15)" }}
+                >
+                  <Newspaper className="w-4 h-4" style={{ color: "#25D366" }} />
+                </div>
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "#E2E8F0" }}
+                >
+                  Articles Feed
+                </span>
+              </button>
+            </div>
+
             {/* Search */}
             <div className="px-3 py-3">
               <div className="relative">
@@ -474,11 +500,23 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Current user + logout */}
+            {/* Current user + logout + write article */}
             <div
               className="px-3 py-3"
               style={{ borderTop: "1px solid #1A2A31" }}
             >
+              {/* Write article shortcut */}
+              <button
+                type="button"
+                data-ocid="chat.secondary_button"
+                onClick={() => navigate({ to: "/articles/new" })}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl mb-2 text-sm font-medium transition-all hover:bg-white/5"
+                style={{ color: "#8B9EA8" }}
+              >
+                <PenLine className="w-4 h-4" style={{ color: "#25D366" }} />
+                <span style={{ color: "#E2E8F0" }}>Write Article</span>
+              </button>
+
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"

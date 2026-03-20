@@ -7,7 +7,11 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
+import ArticleDetailPage from "./pages/ArticleDetailPage";
+import ArticlesFeedPage from "./pages/ArticlesFeedPage";
 import ChatPage from "./pages/ChatPage";
+import CreateArticlePage from "./pages/CreateArticlePage";
+import EditArticlePage from "./pages/EditArticlePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 
@@ -47,6 +51,46 @@ const chatRoute = createRoute({
   component: ChatPage,
 });
 
+const articlesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/articles",
+  beforeLoad: () => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) throw redirect({ to: "/login" });
+  },
+  component: ArticlesFeedPage,
+});
+
+const articlesNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/articles/new",
+  beforeLoad: () => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) throw redirect({ to: "/login" });
+  },
+  component: CreateArticlePage,
+});
+
+const articleDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/articles/$articleId",
+  beforeLoad: () => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) throw redirect({ to: "/login" });
+  },
+  component: ArticleDetailPage,
+});
+
+const articleEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/articles/$articleId/edit",
+  beforeLoad: () => {
+    const token = localStorage.getItem("sessionToken");
+    if (!token) throw redirect({ to: "/login" });
+  },
+  component: EditArticlePage,
+});
+
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
@@ -63,6 +107,10 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   chatRoute,
+  articlesRoute,
+  articlesNewRoute,
+  articleDetailRoute,
+  articleEditRoute,
 ]);
 
 const router = createRouter({ routeTree });

@@ -1,37 +1,18 @@
-import Time "mo:core/Time";
-import Text "mo:core/Text";
 import Map "mo:core/Map";
-import Array "mo:core/Array";
+import Nat "mo:core/Nat";
+import Text "mo:core/Text";
+import Time "mo:core/Time";
+
 import Runtime "mo:core/Runtime";
-import Principal "mo:core/Principal";
-import Order "mo:core/Order";
 import Iter "mo:core/Iter";
-import Blob "mo:core/Blob";
-import Nat8 "mo:core/Nat8";
+import Principal "mo:core/Principal";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import MixinStorage "blob-storage/Mixin";
+
 
 actor {
-  module UserProfile {
-    public func compare(profile1 : UserProfile, profile2 : UserProfile) : Order.Order {
-      Text.compare(profile1.username, profile2.username);
-    };
-
-    public func compareByLastSeen(profile1 : UserProfile, profile2 : UserProfile) : Order.Order {
-      Int.compare(profile2.lastSeen, profile1.lastSeen);
-    };
-  };
-
-  module GroupView {
-    public func compare(groupView1 : GroupView, groupView2 : GroupView) : Order.Order {
-      Text.compare(groupView1.name, groupView2.name);
-    };
-
-    public func compareByMemberCount(groupView1 : GroupView, groupView2 : GroupView) : Order.Order {
-      Int.compare(groupView2.memberCount, groupView1.memberCount);
-    };
-  };
-
   type UserProfile = {
     username : Text;
     email : Text;
@@ -77,17 +58,33 @@ actor {
     online : Bool;
   };
 
+  type Article = {
+    id : Nat;
+    title : Text;
+    content : Text;
+    imageUrl : ?Text;
+    authorName : Text;
+    authorId : Text;
+    createdAt : Time.Time;
+  };
+
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+  include MixinStorage();
 
   let userProfiles = Map.empty<Principal, UserProfile>();
   let groups = Map.empty<Text, Group>();
   let messages = Map.empty<Text, [Message]>();
   let sessions = Map.empty<Text, Session>();
+  let articles = Map.empty<Nat, Article>();
   var messageIdCounter : Nat = 0;
+  var articleIdCounter : Nat = 0;
   var initialized : Bool = false;
 
-  // Initialize default groups on first deployment
+  func arrayContains(array : [Principal], target : Principal) : Bool {
+    array.values().any(func(item) { target == item });
+  };
+
   system func postupgrade() {
     if (not initialized) {
       initializeDefaultGroups();
@@ -115,40 +112,29 @@ actor {
     };
   };
 
-  // Helper function to hash passwords (simple implementation)
   func hashPassword(password : Text) : Text {
-    let blob = password.encodeUtf8();
-    let hash = blob.toArray();
-    var result = "";
-    for (byte in hash.vals()) {
-      result #= byte.toText();
-    };
-    result;
+    password;
   };
 
-  // Helper function to generate session token
   func generateSessionToken(userId : Principal) : Text {
     let timestamp = Time.now().toText();
     let principal = userId.toText();
     principal # "-" # timestamp;
   };
 
-  // Helper function to validate session and return userId
   func validateSession(token : Text) : ?Principal {
     switch (sessions.get(token)) {
       case (null) { null };
       case (?session) {
         let now = Time.now();
-        // Check if session expired (24 hours = 86400000000000 nanoseconds)
         if (now > session.expiresAt) {
           sessions.remove(token);
           null;
         } else {
-          // Update last active time
           let updatedSession = {
             token = session.token;
             userId = session.userId;
-            expiresAt = now + 86400000000000; // Extend by 24 hours
+            expiresAt = now + 86400000000000;
             lastActive = now;
           };
           sessions.add(token, updatedSession);
@@ -158,13 +144,11 @@ actor {
     };
   };
 
-  // User Registration - accessible to anyone
   public shared func register(username : Text, email : Text, password : Text) : async () {
     if (username.isEmpty() or email.isEmpty() or password.isEmpty()) {
       Runtime.trap("Username, email, and password cannot be empty");
     };
 
-    // Check if username already exists
     for ((principal, profile) in userProfiles.entries()) {
       if (profile.username == username) {
         Runtime.trap("Username already exists");
@@ -180,13 +164,10 @@ actor {
       online = false;
     };
 
-    // Create a synthetic principal for username-based registration
-    // In production, this would be handled differently
-    let userPrincipal = Principal.fromText("aaaaa-aa"); // Placeholder
+    let userPrincipal = Principal.fromText("aaaaa-aa");
     userProfiles.add(userPrincipal, newProfile);
   };
 
-  // User Login - accessible to anyone, returns session token
   public shared func login(username : Text, password : Text) : async Text {
     let passwordHash = hashPassword(password);
 
@@ -196,12 +177,11 @@ actor {
         let session : Session = {
           token;
           userId = principal;
-          expiresAt = Time.now() + 86400000000000; // 24 hours
+          expiresAt = Time.now() + 86400000000000;
           lastActive = Time.now();
         };
         sessions.add(token, session);
 
-        // Update user status
         let updatedProfile = {
           username = profile.username;
           email = profile.email;
@@ -218,7 +198,6 @@ actor {
     Runtime.trap("Invalid username or password");
   };
 
-  // User Logout - requires valid session
   public shared func logout(token : Text) : async () {
     switch (validateSession(token)) {
       case (null) { Runtime.trap("Invalid or expired session") };
@@ -241,7 +220,6 @@ actor {
     };
   };
 
-  // Validate session token - requires valid session
   public query func validateSessionToken(token : Text) : async Bool {
     switch (sessions.get(token)) {
       case (null) { false };
@@ -251,7 +229,6 @@ actor {
     };
   };
 
-  // Get all users with online status - requires user authentication
   public query ({ caller }) func getAllUsers() : async [PublicUserProfile] {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can view user list");
@@ -270,7 +247,6 @@ actor {
     users;
   };
 
-  // Get caller's user profile - requires user authentication
   public query ({ caller }) func getCallerUserProfile() : async ?PublicUserProfile {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -289,7 +265,6 @@ actor {
     };
   };
 
-  // Get another user's profile - requires user authentication
   public query ({ caller }) func getUserProfile(user : Principal) : async ?PublicUserProfile {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
       if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
@@ -310,7 +285,6 @@ actor {
     };
   };
 
-  // Save caller's user profile - requires user authentication
   public shared ({ caller }) func saveCallerUserProfile(username : Text, email : Text) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can save profiles");
@@ -333,7 +307,6 @@ actor {
     };
   };
 
-  // Create group - admin only
   public shared ({ caller }) func createGroup(id : Text, name : Text, description : Text) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Admin privileges required to create a group");
@@ -356,7 +329,6 @@ actor {
     groups.add(id, newGroup);
   };
 
-  // Get group details - requires user authentication
   public shared ({ caller }) func getGroup(id : Text) : async GroupView {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view groups");
@@ -377,7 +349,6 @@ actor {
     };
   };
 
-  // Get all groups with member count - requires user authentication
   public query ({ caller }) func getAllGroups() : async [GroupView] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view groups");
@@ -390,7 +361,6 @@ actor {
     groupViews;
   };
 
-  // Join a group - requires user authentication
   public shared ({ caller }) func joinGroup(groupId : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can join groups");
@@ -399,11 +369,8 @@ actor {
     switch (groups.get(groupId)) {
       case (null) { Runtime.trap("Group not found") };
       case (?group) {
-        // Check if already a member
-        for (member in group.members.values()) {
-          if (member == caller) {
-            Runtime.trap("Already a member of this group");
-          };
+        if (arrayContains(group.members, caller)) {
+          Runtime.trap("Already a member of this group");
         };
 
         group.members := group.members.concat([caller]);
@@ -412,9 +379,11 @@ actor {
     };
   };
 
-  // Send message to group - requires user authentication
   public shared ({ caller }) func sendMessage(groupId : Text, text : Text, sessionToken : Text) : async Nat {
-    // Validate session token
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can send messages");
+    };
+
     switch (validateSession(sessionToken)) {
       case (null) { Runtime.trap("Invalid or expired session") };
       case (?userId) {
@@ -424,19 +393,13 @@ actor {
       };
     };
 
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can send messages");
-    };
-
     if (text.isEmpty()) {
       Runtime.trap("Message text cannot be empty");
     };
 
-    // Verify group exists
     switch (groups.get(groupId)) {
       case (null) { Runtime.trap("Group not found") };
       case (?group) {
-        // Get sender username
         let senderUsername = switch (userProfiles.get(caller)) {
           case (null) { "Unknown" };
           case (?profile) { profile.username };
@@ -464,7 +427,6 @@ actor {
     };
   };
 
-  // Get messages for a group - requires user authentication
   public query ({ caller }) func getMessages(groupId : Text, since : ?Time.Time) : async [Message] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view messages");
@@ -480,6 +442,102 @@ actor {
             messageArray.filter<Message>(func(msg) { msg.timestamp > timestamp });
           };
         };
+      };
+    };
+  };
+
+  // ── Article functions ──
+
+  // Create a new article; sessionToken used to identify the author
+  public shared func createArticle(sessionToken : Text, title : Text, content : Text, imageUrl : ?Text) : async Nat {
+    let userId = switch (validateSession(sessionToken)) {
+      case (null) { Runtime.trap("Invalid or expired session") };
+      case (?id) { id };
+    };
+
+    if (title.isEmpty() or content.isEmpty()) {
+      Runtime.trap("Title and content cannot be empty");
+    };
+
+    let authorName = switch (userProfiles.get(userId)) {
+      case (null) { "Unknown" };
+      case (?profile) { profile.username };
+    };
+
+    articleIdCounter += 1;
+    let article : Article = {
+      id = articleIdCounter;
+      title;
+      content;
+      imageUrl;
+      authorName;
+      authorId = userId.toText();
+      createdAt = Time.now();
+    };
+    articles.add(articleIdCounter, article);
+    articleIdCounter;
+  };
+
+  // Get all articles sorted newest-first (public)
+  public query func getAllArticles() : async [Article] {
+    let all = articles.entries().toArray().map(func((id, a)) { a });
+    all.sort(func(a, b) {
+      if (a.createdAt > b.createdAt) { #less }
+      else if (a.createdAt < b.createdAt) { #greater }
+      else { #equal };
+    });
+  };
+
+  // Get a single article by id (public)
+  public query func getArticle(id : Nat) : async ?Article {
+    articles.get(id);
+  };
+
+  // Update an article; only the original author (by sessionToken) can update
+  public shared func updateArticle(sessionToken : Text, id : Nat, title : Text, content : Text, imageUrl : ?Text) : async () {
+    let userId = switch (validateSession(sessionToken)) {
+      case (null) { Runtime.trap("Invalid or expired session") };
+      case (?uid) { uid };
+    };
+
+    if (title.isEmpty() or content.isEmpty()) {
+      Runtime.trap("Title and content cannot be empty");
+    };
+
+    switch (articles.get(id)) {
+      case (null) { Runtime.trap("Article not found") };
+      case (?article) {
+        if (article.authorId != userId.toText()) {
+          Runtime.trap("Unauthorized: Only the author can edit this article");
+        };
+        let updated : Article = {
+          id = article.id;
+          title;
+          content;
+          imageUrl;
+          authorName = article.authorName;
+          authorId = article.authorId;
+          createdAt = article.createdAt;
+        };
+        articles.add(id, updated);
+      };
+    };
+  };
+
+  // Delete an article; only the original author can delete
+  public shared func deleteArticle(sessionToken : Text, id : Nat) : async () {
+    let userId = switch (validateSession(sessionToken)) {
+      case (null) { Runtime.trap("Invalid or expired session") };
+      case (?uid) { uid };
+    };
+
+    switch (articles.get(id)) {
+      case (null) { Runtime.trap("Article not found") };
+      case (?article) {
+        if (article.authorId != userId.toText()) {
+          Runtime.trap("Unauthorized: Only the author can delete this article");
+        };
+        articles.remove(id);
       };
     };
   };
